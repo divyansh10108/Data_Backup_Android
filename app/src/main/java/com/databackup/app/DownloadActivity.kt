@@ -29,7 +29,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,7 +59,7 @@ private var lastUpdate: Long = 0
 private var lastX: Float = 0f
 private var lastY: Float = 0f
 private var lastZ: Float = 0f
-private val SHAKE_THRESHOLD = 800
+private const val SHAKE_THRESHOLD = 800
 
 class DownloadActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,14 +70,14 @@ class DownloadActivity : ComponentActivity() {
         val database: Database = Room.databaseBuilder(applicationContext, Database::class.java, "data").build()
 
         setContent {
-            val coroutineScope = rememberCoroutineScope()
-            val snackbarHostState = remember { SnackbarHostState() }
+            rememberCoroutineScope()
+            remember { SnackbarHostState() }
             DataBackupAppTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    DownloadScreen(database, coroutineScope, snackbarHostState)
+                    DownloadScreen(database)
                 }
             }
         }
@@ -109,7 +108,7 @@ class DownloadActivity : ComponentActivity() {
                 val z = event.values[2]
 
                 if (isDeviceMoving(x, y, z)) {
-                    showToast("Device movement detected. Download paused.")
+                    showToast()
                 }
             }
         }
@@ -124,7 +123,7 @@ class DownloadActivity : ComponentActivity() {
         }
     }
 
-    private fun showToast(message: String) {
+    private fun showToast() {
 //        runOnUiThread {
 //            Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
 //        }
@@ -154,11 +153,11 @@ class DownloadActivity : ComponentActivity() {
 }
 
 @Composable
-fun DownloadScreen(database: Database, coroutineScope: CoroutineScope, snackbarHostState: SnackbarHostState) {
+fun DownloadScreen(database: Database) {
     val storage = Firebase.storage
     val listRef = storage.reference
     var listItems by remember { mutableStateOf(listOf<String>()) }
-    var id by remember { mutableStateOf("") }
+    val id by remember { mutableStateOf("") }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -274,7 +273,7 @@ private fun isDeviceMoving(x: Float, y: Float, z: Float): Boolean {
     return false
 }
 fun downloadFile(url: String, database: Database, snackbarHostState: SnackbarHostState,coroutineScope: CoroutineScope) {
-    var result = ""
+    ""
     val cloudStorage = Firebase.storage.reference
     val storageRef = cloudStorage.child("/$url")
 
