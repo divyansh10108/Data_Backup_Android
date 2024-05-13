@@ -8,8 +8,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -22,6 +29,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -63,7 +72,8 @@ class StatsActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val database: Database = Room.databaseBuilder(applicationContext, Database::class.java, "data").build()
+        val database: Database =
+            Room.databaseBuilder(applicationContext, Database::class.java, "data").build()
         enableEdgeToEdge()
 
         // Initialize DataStore repository
@@ -92,15 +102,30 @@ fun StatsScreen(database: Database, topFilesRepository: TopFilesRepository) {
     }
 
     val cachedTopFiles by topFilesRepository.getTopFiles().collectAsState(emptyList())
-
+    val context = LocalContext.current
+    Box(
+        modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter
+    ) {
+        Column(
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.Top,
+        ) {
+            IconButton(onClick = { (context as ComponentActivity).onBackPressed() }) {
+                Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = "Back")
+            }
+        }
+    }
+    Spacer(modifier = Modifier.height(32.dp))
     Column(
-        modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Text("Top 5 Files:", fontSize = 20.sp)
         cachedTopFiles.forEach { fileName ->
-            Text("$fileName - Count: ${topFiles.find { it.fileName == fileName }?.count ?: 0}", fontSize = 16.sp)
+            Text(
+                "$fileName - Count: ${topFiles.find { it.fileName == fileName }?.count ?: 0}",
+                fontSize = 16.sp
+            )
         }
     }
 }

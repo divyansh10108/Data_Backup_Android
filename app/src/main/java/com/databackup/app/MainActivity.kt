@@ -9,11 +9,17 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -33,8 +39,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             DataBackupAppTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
                 ) {
                     MainScreen()
                 }
@@ -72,75 +77,95 @@ fun MainScreen() {
     val mContext = LocalContext.current
     val activity = (mContext as? MainActivity)
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
-
+    Box(
+        modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter
     ) {
-        Text(
-            text = stringResource(id = R.string.app_name),
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.semantics { heading() } // Accessibility: Mark as heading
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            AccessibilityButton(
-                label = "Download",
-                onClick = {
-                    val intent = Intent(mContext, DownloadActivity::class.java)
-                    activity?.speakAndNavigate("Download", intent)
-                }
-            )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            AccessibilityButton(
-                label = "Upload",
-                onClick = {
-                    val intent = Intent(mContext, UploadActivity::class.java)
-                    activity?.speakAndNavigate("Upload", intent)
-                }
-            )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            AccessibilityButton(
-                label = "Download Stats",
-                onClick = {
-                    val intent = Intent(mContext, StatsActivity::class.java)
-                    activity?.speakAndNavigate("Download Stats", intent)
-                }
-            )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Switch(
-                checked = activity?.isTextToSpeechOn ?: false,
-                onCheckedChange = { activity?.toggleTextToSpeech(it) },
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color(0XFF0F9D58),
-                    checkedTrackColor = Color(0XFFA2E8A6),
-                    uncheckedThumbColor = Color(0XFFCCCCCC),
-                    uncheckedTrackColor = Color(0XFFEEEEEE)
+            Spacer(modifier = Modifier.height(32.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(text = stringResource(id = R.string.app_name),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.semantics { heading() } // Accessibility: Mark as heading
                 )
-            )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Filled.Share, // replace with your actual icon
+                    contentDescription = null
+                )
+            }
+
+
+            Box(
+                modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.Top,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+
+                    AccessibilityButton(
+                        label = "Download", onClick = {
+                            val intent = Intent(mContext, DownloadActivity::class.java)
+                            activity?.speakAndNavigate("Download", intent)
+                        }, icon = Icons.Filled.KeyboardArrowDown
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    AccessibilityButton(
+                        label = "Upload", onClick = {
+                            val intent = Intent(mContext, UploadActivity::class.java)
+                            activity?.speakAndNavigate("Upload", intent)
+                        }, icon = Icons.Filled.KeyboardArrowUp
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    AccessibilityButton(
+                        label = "Download Stats", onClick = {
+                            val intent = Intent(mContext, StatsActivity::class.java)
+                            activity?.speakAndNavigate("Download Stats", intent)
+                        }, icon = Icons.Filled.Info
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Switch(
+                        checked = activity?.isTextToSpeechOn ?: false,
+                        onCheckedChange = { activity?.toggleTextToSpeech(it) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color(0XFF0F9D58),
+                            checkedTrackColor = Color(0XFFA2E8A6),
+                            uncheckedThumbColor = Color(0XFFCCCCCC),
+                            uncheckedTrackColor = Color(0XFFEEEEEE)
+                        )
+
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-fun AccessibilityButton(label: String, onClick: () -> Unit) {
+fun AccessibilityButton(label: String, onClick: () -> Unit, icon: ImageVector) {
     Button(
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(containerColor = Color(0XFF0F9D58)),
+        modifier = Modifier.fillMaxWidth(0.8f),
+        shape = MaterialTheme.shapes.medium
     ) {
         Text(label, color = Color.White)
+        Spacer(modifier = Modifier.width(8.dp))
+        Icon(imageVector = icon, contentDescription = null)
     }
 }
 
