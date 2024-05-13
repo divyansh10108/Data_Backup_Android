@@ -1,17 +1,24 @@
 package com.databackup.app
 import android.annotation.SuppressLint
+import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.Context
+import android.content.Intent
+import android.database.Cursor
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
 import android.provider.OpenableColumns
+import android.provider.Settings
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -33,11 +40,13 @@ import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.TimeUnit
-
+import com.databackup.app.BuildConfig
 class UploadActivity : ComponentActivity() {
+    private val REQUEST_CODE = 1
+    @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        requestManageAllFilesAccessPermission()
         setContent {
             DataBackupAppTheme {
                 Surface(
@@ -45,6 +54,30 @@ class UploadActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     UploadScreen()
+                }
+            }
+        }
+    }
+    fun requestManageAllFilesAccessPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (!Environment.isExternalStorageManager()) {
+                val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                    Uri.parse("package:$packageName"))
+                startActivityForResult(intent, REQUEST_CODE)
+            }
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_CODE) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                if (Environment.isExternalStorageManager()) {
+                    // Permission granted
+                    Toast.makeText(this, "Permission granted", Toast.LENGTH_SHORT).show()
+                } else {
+                    // Permission not granted
+                    Toast.makeText(this, "Permission not granted", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -116,9 +149,12 @@ fun uploadFile(uri: Uri, context: Context): String {
     return downloadUrl
 }
 
+@RequiresApi(Build.VERSION_CODES.Q)
 @Composable
 fun UploadScreen() {
     val context = LocalContext.current
+    val contentResolver: ContentResolver = context.contentResolver
+
 
     val filePickerLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
@@ -135,7 +171,7 @@ fun UploadScreen() {
 
         Button(onClick = {
             scanAndUploadLauncher.launch {
-                scanAndUploadAllFiles(context)
+                scanAndUploadAllFiles(contentResolver,context)
             }
         }) {
             Text("Scan and Upload Old Files")
@@ -143,29 +179,50 @@ fun UploadScreen() {
     }
 }
 
-@SuppressLint("NewApi")
-fun scanAndUploadAllFiles(context: Context) {
+@RequiresApi(Build.VERSION_CODES.Q)
+suspend fun scanAndUploadAllFiles(contentResolver: ContentResolver, context: Context) {
     val projection = arrayOf(
-        MediaStore.Downloads._ID
+        MediaStore.Downloads.DISPLAY_NAME
     )
 
-    context.contentResolver.query(
-        MediaStore.Downloads.EXTERNAL_CONTENT_URI,
-        projection,
+    val uri: Uri = MediaStore.Downloads.EXTERNAL_CONTENT_URI
+
+    val cursor: Cursor? = contentResolver.query(
+        uri,
+        null,
         null,
         null,
         null
-    )?.use { cursor ->
-        val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Downloads._ID)
+    )
 
-        while (cursor.moveToNext()) {
-            val id = cursor.getLong(idColumn)
-            val contentUri = ContentUris.withAppendedId(
-                MediaStore.Downloads.EXTERNAL_CONTENT_URI,
-                id
-            )
+    cursor?.use { cursor ->
+        Log.d("ScanUpload", cursor.count.toString())
 
-            uploadFile(contentUri, context)
+        // Move cursor to the first row
+        if (cursor.moveToFirst()) {
+            val idColumnIndex = cursor.getColumnIndexOrThrow(MediaStore.Downloads._ID)
+            val displayNameColumnIndex = cursor.getColumnIndexOrThrow(MediaStore.Downloads.DISPLAY_NAME)
+
+            do {
+                // Retrieve data for each file
+                val id = cursor.getLong(idColumnIndex)
+                val displayName = cursor.getString(displayNameColumnIndex)
+
+                Log.d("ScanUpload", "File: $displayName, ID: $id")
+
+                // Create content URI for the file
+                val contentUri = ContentUris.withAppendedId(uri, id)
+
+                // Upload the file using the content URI
+                uploadFile(contentUri, context)
+
+            } while (cursor.moveToNext()) // Move to the next row
         }
     }
+
+    cursor?.close()
 }
+
+
+
+
