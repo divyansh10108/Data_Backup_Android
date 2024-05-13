@@ -24,6 +24,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -167,8 +168,38 @@ fun DownloadScreen(database: Database, coroutineScope: CoroutineScope, snackbarH
                 listItems = listOf("Failed to list files")
             }
     }
+    fun downloadTopFiles() {
+        coroutineScope.launch {
+            try {
+                val topFiles = database.dao().getTopFiles(5) // Assuming 5 is the limit for top files
+                val cacheDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "CacheFolder")
+                cacheDir.mkdirs() // Create the cache directory if it doesn't exist
 
-    listFiles(listRef)
+                val storage = Firebase.storage
+                topFiles.forEach { data ->
+                    val storageRef = storage.reference.child(data.fileName)
+                    val localFile = File(cacheDir, data.fileName)
+
+                    storageRef.getFile(localFile)
+                        .addOnSuccessListener {
+                            showMessage("Downloaded ${data.fileName} to cache folder", coroutineScope, snackbarHostState)
+                        }
+                        .addOnFailureListener { exception ->
+                            showMessage("Failed to download ${data.fileName}: ${exception.message}", coroutineScope, snackbarHostState)
+                        }
+                }
+            } catch (e: Exception) {
+                showMessage("Failed to retrieve top files: ${e.message}", coroutineScope, snackbarHostState)
+            }
+        }
+    }
+
+
+    downloadTopFiles()
+
+
+
+        listFiles(listRef)
 
     Column(
         modifier = Modifier.fillMaxSize(),

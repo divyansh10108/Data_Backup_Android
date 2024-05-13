@@ -45,6 +45,7 @@ class TopFilesRepository(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { preferences ->
             val filesString = files.joinToString(",") { it.fileName }
             preferences[TOP_FILES_KEY] = filesString
+
         }
         Log.d("DataStore", "Top files cached successfully")
     }
