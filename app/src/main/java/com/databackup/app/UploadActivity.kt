@@ -41,6 +41,8 @@ import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import com.databackup.app.BuildConfig
+import java.util.Calendar
+
 class UploadActivity : ComponentActivity() {
     private val REQUEST_CODE = 1
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -181,47 +183,84 @@ fun UploadScreen() {
 
 @RequiresApi(Build.VERSION_CODES.Q)
 suspend fun scanAndUploadAllFiles(contentResolver: ContentResolver, context: Context) {
-    val projection = arrayOf(
-        MediaStore.Downloads.DISPLAY_NAME
-    )
-
     val uri: Uri = MediaStore.Downloads.EXTERNAL_CONTENT_URI
-
-    val cursor: Cursor? = contentResolver.query(
-        uri,
-        null,
-        null,
-        null,
-        null
-    )
+    val cursor: Cursor? = contentResolver.query(uri, null, null, null, null)
 
     cursor?.use { cursor ->
         Log.d("ScanUpload", cursor.count.toString())
+
+        // Calculate date threshold (31 days ago)
+        val calendar = Calendar.getInstance()
+        calendar.add(Calendar.DAY_OF_MONTH, -31)
+        val thresholdDate = calendar.timeInMillis/1000
 
         // Move cursor to the first row
         if (cursor.moveToFirst()) {
             val idColumnIndex = cursor.getColumnIndexOrThrow(MediaStore.Downloads._ID)
             val displayNameColumnIndex = cursor.getColumnIndexOrThrow(MediaStore.Downloads.DISPLAY_NAME)
+            val dateModifiedColumnIndex = cursor.getColumnIndexOrThrow(MediaStore.Downloads.DATE_MODIFIED)
 
             do {
-                // Retrieve data for each file
                 val id = cursor.getLong(idColumnIndex)
                 val displayName = cursor.getString(displayNameColumnIndex)
+                val dateModified = cursor.getLong(dateModifiedColumnIndex)
 
-                Log.d("ScanUpload", "File: $displayName, ID: $id")
 
-                // Create content URI for the file
-                val contentUri = ContentUris.withAppendedId(uri, id)
 
-                // Upload the file using the content URI
-                uploadFile(contentUri, context)
-
+                if (dateModified <= thresholdDate) {
+                    Log.d("ScanUpload", "File: $displayName, ID: $id, Modified: $dateModified")
+                    Log.d("ScanUpload2", "$thresholdDate")
+                    val contentUri = ContentUris.withAppendedId(uri, id)
+                    uploadFile(contentUri, context)
+                }
             } while (cursor.moveToNext()) // Move to the next row
         }
     }
 
     cursor?.close()
 }
+
+//@RequiresApi(Build.VERSION_CODES.Q)
+//suspend fun scanAndUploadAllFiles(contentResolver: ContentResolver, context: Context) {
+//
+//
+//    val uri: Uri = MediaStore.Downloads.EXTERNAL_CONTENT_URI
+//
+//    val cursor: Cursor? = contentResolver.query(
+//        uri,
+//        null,
+//        null,
+//        null,
+//        null
+//    )
+//
+//    cursor?.use { cursor ->
+//        Log.d("ScanUpload", cursor.count.toString())
+//
+//        // Move cursor to the first row
+//        if (cursor.moveToFirst()) {
+//            val idColumnIndex = cursor.getColumnIndexOrThrow(MediaStore.Downloads._ID)
+//            val displayNameColumnIndex = cursor.getColumnIndexOrThrow(MediaStore.Downloads.DISPLAY_NAME)
+//
+//            do {
+//                // Retrieve data for each file
+//                val id = cursor.getLong(idColumnIndex)
+//                val displayName = cursor.getString(displayNameColumnIndex)
+//
+//                Log.d("ScanUpload", "File: $displayName, ID: $id")
+//
+//                // Create content URI for the file
+//                val contentUri = ContentUris.withAppendedId(uri, id)
+//
+//                // Upload the file using the content URI
+//                uploadFile(contentUri, context)
+//
+//            } while (cursor.moveToNext()) // Move to the next row
+//        }
+//    }
+//
+//    cursor?.close()
+//}
 
 
 
